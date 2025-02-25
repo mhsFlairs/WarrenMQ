@@ -1,0 +1,40 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarrenMQ", "WarrenMQ\WarrenMQ.csproj", "{A782D212-3AC7-4C64-94CB-EAB3027E6B61}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarrenMQ.Tests", "WarrenMQ.Tests\WarrenMQ.Tests.csproj", "{524512BA-9A8E-4AF6-B6C7-52B7C8653D63}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarrenMQ.Console", "WarrenMQ.Console\WarrenMQ.Console.csproj", "{D0BEF83B-6D2B-4010-A6B0-0F9D30E1BF6B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarrenMQ.Api", "WarrenMQ.Api\WarrenMQ.Api.csproj", "{904B4422-AD7D-4CAD-8548-05EE62AA985F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A782D212-3AC7-4C64-94CB-EAB3027E6B61}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A782D212-3AC7-4C64-94CB-EAB3027E6B61}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A782D212-3AC7-4C64-94CB-EAB3027E6B61}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A782D212-3AC7-4C64-94CB-EAB3027E6B61}.Release|Any CPU.Build.0 = Release|Any CPU
+		{524512BA-9A8E-4AF6-B6C7-52B7C8653D63}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{524512BA-9A8E-4AF6-B6C7-52B7C8653D63}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{524512BA-9A8E-4AF6-B6C7-52B7C8653D63}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{524512BA-9A8E-4AF6-B6C7-52B7C8653D63}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D0BEF83B-6D2B-4010-A6B0-0F9D30E1BF6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D0BEF83B-6D2B-4010-A6B0-0F9D30E1BF6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D0BEF83B-6D2B-4010-A6B0-0F9D30E1BF6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D0BEF83B-6D2B-4010-A6B0-0F9D30E1BF6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{904B4422-AD7D-4CAD-8548-05EE62AA985F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{904B4422-AD7D-4CAD-8548-05EE62AA985F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{904B4422-AD7D-4CAD-8548-05EE62AA985F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{904B4422-AD7D-4CAD-8548-05EE62AA985F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

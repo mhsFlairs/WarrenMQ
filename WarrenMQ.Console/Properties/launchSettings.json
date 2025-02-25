@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Publisher": {
+      "commandName": "Project",
+      "commandLineArgs": "publisher"
+    },
+    "Consumer": {
+      "commandName": "Project",
+      "commandLineArgs": "consumer"
+    }
+  }
+}

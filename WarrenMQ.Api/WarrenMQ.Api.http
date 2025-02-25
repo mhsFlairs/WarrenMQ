@@ -1,0 +1,6 @@
+@WarrenMQ.Api_HostAddress = http://localhost:5111
+
+GET {{WarrenMQ.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
