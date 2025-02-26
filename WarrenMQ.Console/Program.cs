@@ -1,13 +1,12 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using WarrenMQ.Configuration;
 using WarrenMQ.Contracts;
 using WarrenMQ.Factories;
 using WarrenMQ.Services;
 
 const string exchangeName = "IntegrationOutputQueue";
+
+string queueName = "Playground";
 
 RabbitMQConfig config = new RabbitMQConfig
 {
@@ -19,13 +18,15 @@ RabbitMQConfig config = new RabbitMQConfig
     ChannelPoolSize = 10
 };
 
-if (args.Length != 1)
+if (args.Length > 2 || args.Length == 0)
 {
-    Console.WriteLine("Usage: RabbitMQApp <publisher/consumer>");
+    Console.WriteLine("Usage: RabbitMQApp <publisher/consumer> <optional:queueName>");
     return;
 }
 
 string mode = args[0].ToLower();
+
+queueName = string.IsNullOrWhiteSpace(args.ElementAtOrDefault(1)) ? queueName : args[1];
 
 if (mode == "publisher")
 {
@@ -33,7 +34,7 @@ if (mode == "publisher")
 }
 else if (mode == "consumer")
 {
-    await ConsumerMessageFromPackageAsync();
+    await ConsumerMessageFromPackageAsync(queueName);
 }
 else
 {
@@ -66,7 +67,7 @@ async Task PublishMessageAsync()
     }
 }
 
-async Task ConsumerMessageFromPackageAsync()
+async Task ConsumerMessageFromPackageAsync(string _queueName)
 {
     IRabbitMQConnectionFactory connectionFactory =
         new RabbitMQConnectionFactory(config, new ConsoleLogger<RabbitMQConnectionFactory>());
@@ -76,11 +77,9 @@ async Task ConsumerMessageFromPackageAsync()
 
     IRabbitMQService rabbitMQService = new RabbitMQService(channelFactory, new ConsoleLogger<RabbitMQService>());
 
-    string queueName = $"Playground";
+    Console.WriteLine($"Queue name: {_queueName}. Waiting for messages...");
 
-    Console.WriteLine($"Queue name: {queueName}. Waiting for messages...");
-
-    await rabbitMQService.ConsumeFanOutMessagesAsync<object>(queueName, exchangeName, message =>
+    await rabbitMQService.ConsumeFanOutMessagesAsync<object>(_queueName, exchangeName, message =>
     {
         Console.WriteLine($"Received message:{message}");
         return Task.CompletedTask;

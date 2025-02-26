@@ -1,8 +1,5 @@
-using System;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -57,13 +54,7 @@ public class RabbitMQService : IRabbitMQService
         {
             IChannel channel = await _channelFactory.GetChannelAsync(cancellationToken: cancellationToken);
 
-            // Declare a durable exchange
-            await channel.ExchangeDeclareAsync(
-                exchange: exchangeName,
-                type: ExchangeType.Fanout,
-                durable: true,
-                autoDelete: false,
-                cancellationToken: cancellationToken);
+            await ExchangeDeclare<T>(exchangeName, channel, cancellationToken);
 
             string serializedMessage = JsonSerializer.Serialize(message);
             byte[] body = Encoding.UTF8.GetBytes(serializedMessage);
@@ -79,13 +70,6 @@ public class RabbitMQService : IRabbitMQService
                 body: body,
                 basicProperties: properties,
                 cancellationToken: cancellationToken);
-
-            await channel.BasicPublishAsync(
-                exchange: exchangeName,
-                routingKey: "",
-                mandatory: true,
-                body: body,
-                cancellationToken: cancellationToken);
         }
         catch (Exception ex)
         {
@@ -98,14 +82,14 @@ public class RabbitMQService : IRabbitMQService
     /// Consumes messages from a fan-out exchange in a message queue.
     /// </summary>
     /// <typeparam name="T">The type of the message to be consumed.</typeparam>
-    /// <param name="queueNamePrefix">The prefix for the queue name, which will be suffixed with a unique identifier.</param>
+    /// <param name="queueName">The queue name, which will be consumed.</param>
     /// <param name="exchangeName">The name of the exchange to bind the queue to.</param>
     /// <param name="messageHandler">A function that processes the received message asynchronously.</param>
     /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     /// <exception cref="Exception">Thrown if an error occurs while setting up the consumer or processing messages.</exception>
     public async Task ConsumeFanOutMessagesAsync<T>(
-        string queueNamePrefix,
+        string queueName,
         string exchangeName,
         Func<T, Task> messageHandler,
         CancellationToken cancellationToken)
@@ -114,15 +98,7 @@ public class RabbitMQService : IRabbitMQService
         {
             IChannel channel = await _channelFactory.GetChannelAsync(cancellationToken: cancellationToken);
 
-            string queueName = $"{queueNamePrefix}-{Guid.NewGuid()}";
-
-            // Declare a durable exchange
-            await channel.ExchangeDeclareAsync(
-                exchange: exchangeName,
-                type: ExchangeType.Fanout,
-                durable: true,
-                autoDelete: false,
-                cancellationToken: cancellationToken);
+            await ExchangeDeclare<T>(exchangeName, channel, cancellationToken);
 
             // Declare a durable queue
             await channel.QueueDeclareAsync(
@@ -158,24 +134,17 @@ public class RabbitMQService : IRabbitMQService
                     if (deserializedMessage != null)
                     {
                         await messageHandler(deserializedMessage);
-                        // Explicitly acknowledge the message after processing
-                        await channel.BasicAckAsync(ea.DeliveryTag, multiple: false,
-                            cancellationToken: cancellationToken);
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error processing message");
-                    // Reject the message and requeue it
-                    await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true,
-                        cancellationToken: cancellationToken);
-                    throw;
                 }
             };
 
             await channel.BasicConsumeAsync(
                 queue: queueName,
-                autoAck: false, // Disable auto-acknowledgment
+                autoAck: true, // Disable auto-acknowledgment
                 consumer: consumer,
                 cancellationToken: cancellationToken);
         }
@@ -184,5 +153,17 @@ public class RabbitMQService : IRabbitMQService
             _logger.LogError(ex, "Error setting up consumer");
             throw;
         }
+    }
+
+    private static async Task ExchangeDeclare<T>(string exchangeName, IChannel channel,
+        CancellationToken cancellationToken)
+    {
+        // Declare a durable exchange
+        await channel.ExchangeDeclareAsync(
+            exchange: exchangeName,
+            type: ExchangeType.Fanout,
+            durable: true,
+            autoDelete: false,
+            cancellationToken: cancellationToken);
     }
 }

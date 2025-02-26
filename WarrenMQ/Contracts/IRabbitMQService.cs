@@ -1,7 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace WarrenMQ.Contracts;
 
 public interface IRabbitMQService
@@ -12,7 +8,7 @@ public interface IRabbitMQService
         CancellationToken cancellationToken);
 
     Task ConsumeFanOutMessagesAsync<T>
-    (string queueNamePrefix,
+    (string queueName,
         string exchangeName,
         Func<T, Task> messageHandler,
         CancellationToken cancellationToken);
