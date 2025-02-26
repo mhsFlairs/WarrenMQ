@@ -2,9 +2,9 @@ namespace WarrenMQ.Configuration;
 
 /// <summary>
 /// Configuration class for RabbitMQ connection settings.
-/// This sealed class contains all necessary parameters to establish a connection with a RabbitMQ server.
 /// </summary>
-public sealed class RabbitMQConfig
+public
+    class RabbitMQConfig
 {
     /// <summary>
     /// The configuration section name used in configuration files.

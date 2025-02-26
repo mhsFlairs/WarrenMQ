@@ -1,10 +1,13 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using WarrenMQ.Configuration;
 using WarrenMQ.Contracts;
 using WarrenMQ.Factories;
 using WarrenMQ.Services;
 
-const string exchangeName = "playground-exchange";
+const string exchangeName = "IntegrationOutputQueue";
 
 RabbitMQConfig config = new RabbitMQConfig
 {
@@ -47,9 +50,6 @@ async Task PublishMessageAsync()
 
     IRabbitMQService rabbitMQService = new RabbitMQService(channelFactory, new ConsoleLogger<RabbitMQService>());
 
-    Console.WriteLine("Press any key to publish a message...");
-    Console.ReadKey();
-
     while (true)
     {
         Console.WriteLine("Enter message to publish (or 'e' to exit):");
@@ -76,11 +76,11 @@ async Task ConsumerMessageFromPackageAsync()
 
     IRabbitMQService rabbitMQService = new RabbitMQService(channelFactory, new ConsoleLogger<RabbitMQService>());
 
-    string queueName = $"Playground-{Guid.NewGuid()}";
+    string queueName = $"Playground";
 
     Console.WriteLine($"Queue name: {queueName}. Waiting for messages...");
 
-    await rabbitMQService.ConsumeFanOutMessagesAsync<string>(queueName, exchangeName, message =>
+    await rabbitMQService.ConsumeFanOutMessagesAsync<object>(queueName, exchangeName, message =>
     {
         Console.WriteLine($"Received message:{message}");
         return Task.CompletedTask;

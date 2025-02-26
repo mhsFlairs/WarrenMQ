@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Concurrent;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
@@ -97,7 +100,7 @@ public class RabbitMQChannelFactory : IRabbitMQChannelFactory
 
         channel.CallbackExceptionAsync += async (sender, args) =>
         {
-            _logger.LogError(args.Exception, "Channel callback exception");
+            _logger.LogError(args.Exception, "Channel callback exception. {0}", args.Exception.Message);
             await HandleChannelErrorAsync(sender as IChannel);
         };
 
@@ -129,6 +132,7 @@ public class RabbitMQChannelFactory : IRabbitMQChannelFactory
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error handling channel error");
+            throw;
         }
     }
 }

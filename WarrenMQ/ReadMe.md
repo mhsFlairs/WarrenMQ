@@ -17,3 +17,17 @@
 ## Program.cs
 
 - Add `builder.Services.AddRabbitMQ(builder.Configuration);`
+
+# RabbitMQConfig
+
+You can extend the RabbitMQConfig class to add more configurations
+
+```csharp
+public class ExtendedRabbitMQConfig : RabbitMQConfig
+{
+public string Exchange { get; set; }
+}
+```
+
+
+

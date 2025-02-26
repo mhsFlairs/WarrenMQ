@@ -1,5 +1,8 @@
+using System;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -53,13 +56,34 @@ public class RabbitMQService : IRabbitMQService
         try
         {
             IChannel channel = await _channelFactory.GetChannelAsync(cancellationToken: cancellationToken);
-            await channel.ExchangeDeclareAsync(exchangeName, ExchangeType.Fanout, cancellationToken: cancellationToken);
+
+            // Declare a durable exchange
+            await channel.ExchangeDeclareAsync(
+                exchange: exchangeName,
+                type: ExchangeType.Fanout,
+                durable: true,
+                autoDelete: false,
+                cancellationToken: cancellationToken);
+
             string serializedMessage = JsonSerializer.Serialize(message);
             byte[] body = Encoding.UTF8.GetBytes(serializedMessage);
+
+            BasicProperties properties = new BasicProperties()
+            {
+                Persistent = true,
+                DeliveryMode = DeliveryModes.Persistent
+            };
+
+            await channel.BasicPublishAsync(
+                addr: new PublicationAddress(ExchangeType.Fanout, exchangeName, ""),
+                body: body,
+                basicProperties: properties,
+                cancellationToken: cancellationToken);
 
             await channel.BasicPublishAsync(
                 exchange: exchangeName,
                 routingKey: "",
+                mandatory: true,
                 body: body,
                 cancellationToken: cancellationToken);
         }
@@ -85,7 +109,6 @@ public class RabbitMQService : IRabbitMQService
         string exchangeName,
         Func<T, Task> messageHandler,
         CancellationToken cancellationToken)
-
     {
         try
         {
@@ -93,10 +116,34 @@ public class RabbitMQService : IRabbitMQService
 
             string queueName = $"{queueNamePrefix}-{Guid.NewGuid()}";
 
-            await channel.QueueDeclareAsync(queueName, durable: false, exclusive: false, autoDelete: false,
+            // Declare a durable exchange
+            await channel.ExchangeDeclareAsync(
+                exchange: exchangeName,
+                type: ExchangeType.Fanout,
+                durable: true,
+                autoDelete: false,
                 cancellationToken: cancellationToken);
 
-            await channel.QueueBindAsync(queueName, exchangeName, "", cancellationToken: cancellationToken);
+            // Declare a durable queue
+            await channel.QueueDeclareAsync(
+                queue: queueName,
+                durable: true, // Make queue persistent
+                exclusive: false, // Allow multiple consumers
+                autoDelete: false, // Don't delete queue when consumer disconnects
+                arguments: null,
+                cancellationToken: cancellationToken);
+
+            await channel.QueueBindAsync(
+                queue: queueName,
+                exchange: exchangeName,
+                routingKey: "",
+                cancellationToken: cancellationToken);
+
+            // Set QoS (prefetch count)
+            await channel.BasicQosAsync(
+                prefetchSize: 0, // No specific size limit
+                prefetchCount: 1, // Process one message at a time
+                global: false, cancellationToken: cancellationToken);
 
             AsyncEventingBasicConsumer consumer = new AsyncEventingBasicConsumer(channel);
 
@@ -111,17 +158,24 @@ public class RabbitMQService : IRabbitMQService
                     if (deserializedMessage != null)
                     {
                         await messageHandler(deserializedMessage);
+                        // Explicitly acknowledge the message after processing
+                        await channel.BasicAckAsync(ea.DeliveryTag, multiple: false,
+                            cancellationToken: cancellationToken);
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error processing message");
+                    // Reject the message and requeue it
+                    await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true,
+                        cancellationToken: cancellationToken);
+                    throw;
                 }
             };
 
             await channel.BasicConsumeAsync(
                 queue: queueName,
-                autoAck: false,
+                autoAck: false, // Disable auto-acknowledgment
                 consumer: consumer,
                 cancellationToken: cancellationToken);
         }

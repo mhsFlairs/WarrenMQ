@@ -1,3 +1,7 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace WarrenMQ.Contracts;
 
 public interface IRabbitMQService
