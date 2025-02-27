@@ -4,7 +4,7 @@ using WarrenMQ.Contracts;
 using WarrenMQ.Factories;
 using WarrenMQ.Services;
 
-const string exchangeName = "IntegrationOutputQueue";
+const string exchangeName = "integration_output_exchange";
 
 string queueName = "Playground";
 
