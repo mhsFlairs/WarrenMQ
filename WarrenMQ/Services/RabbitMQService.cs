@@ -155,6 +155,129 @@ public class RabbitMQService : IRabbitMQService
         }
     }
 
+    /// <summary>
+    /// Publishes a message to a topic exchange with a routing key.
+    /// </summary>
+    /// <typeparam name="T">The type of the message being published.</typeparam>
+    /// <param name="message">The message to be published.</param>
+    /// <param name="exchangeName">The name of the topic exchange where the message will be published.</param>
+    /// <param name="routingKey">The routing key for selective message routing.</param>
+    /// <param name="cancellationToken">A token that can be used to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="Exception">Throws an exception if there is an error during publishing.</exception>
+    public async Task PublishTopicMessageAsync<T>(
+        T message,
+        string exchangeName,
+        string routingKey,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            IChannel channel = await _channelFactory.GetChannelAsync(cancellationToken: cancellationToken);
+
+            await ExchangeDeclareForTopic<T>(exchangeName, channel, cancellationToken);
+
+            string serializedMessage = JsonSerializer.Serialize(message);
+            byte[] body = Encoding.UTF8.GetBytes(serializedMessage);
+
+            BasicProperties properties = new BasicProperties()
+            {
+                Persistent = true,
+                DeliveryMode = DeliveryModes.Persistent
+            };
+
+            await channel.BasicPublishAsync(
+                addr: new PublicationAddress(ExchangeType.Topic, exchangeName, routingKey),
+                body: body,
+                basicProperties: properties,
+                cancellationToken: cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error publishing topic message");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Consumes messages from a topic exchange with routing key binding.
+    /// </summary>
+    /// <typeparam name="T">The type of the message to be consumed.</typeparam>
+    /// <param name="queueName">The queue name, which will be consumed.</param>
+    /// <param name="exchangeName">The name of the topic exchange to bind the queue to.</param>
+    /// <param name="routingKey">The routing key pattern for binding (supports wildcards: * and #).</param>
+    /// <param name="messageHandler">A function that processes the received message asynchronously.</param>
+    /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <exception cref="Exception">Thrown if an error occurs while setting up the consumer or processing messages.</exception>
+    public async Task ConsumeTopicMessagesAsync<T>(
+        string queueName,
+        string exchangeName,
+        string routingKey,
+        Func<T, Task> messageHandler,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            IChannel channel = await _channelFactory.GetChannelAsync(cancellationToken: cancellationToken);
+
+            await ExchangeDeclareForTopic<T>(exchangeName, channel, cancellationToken);
+
+            // Declare a durable queue
+            await channel.QueueDeclareAsync(
+                queue: queueName,
+                durable: true, // Make queue persistent
+                exclusive: false, // Allow multiple consumers
+                autoDelete: false, // Don't delete queue when consumer disconnects
+                arguments: null,
+                cancellationToken: cancellationToken);
+
+            await channel.QueueBindAsync(
+                queue: queueName,
+                exchange: exchangeName,
+                routingKey: routingKey,
+                cancellationToken: cancellationToken);
+
+            // Set QoS (prefetch count)
+            await channel.BasicQosAsync(
+                prefetchSize: 0, // No specific size limit
+                prefetchCount: 1, // Process one message at a time
+                global: false, cancellationToken: cancellationToken);
+
+            AsyncEventingBasicConsumer consumer = new AsyncEventingBasicConsumer(channel);
+
+            consumer.ReceivedAsync += async (_, ea) =>
+            {
+                try
+                {
+                    byte[] body = ea.Body.ToArray();
+                    string message = Encoding.UTF8.GetString(body);
+                    T? deserializedMessage = JsonSerializer.Deserialize<T>(message);
+
+                    if (deserializedMessage != null)
+                    {
+                        await messageHandler(deserializedMessage);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing message");
+                }
+            };
+
+            await channel.BasicConsumeAsync(
+                queue: queueName,
+                autoAck: true, // Disable auto-acknowledgment
+                consumer: consumer,
+                cancellationToken: cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error setting up topic consumer");
+            throw;
+        }
+    }
+
     private static async Task ExchangeDeclare<T>(string exchangeName, IChannel channel,
         CancellationToken cancellationToken)
     {
@@ -162,6 +285,18 @@ public class RabbitMQService : IRabbitMQService
         await channel.ExchangeDeclareAsync(
             exchange: exchangeName,
             type: ExchangeType.Fanout,
+            durable: true,
+            autoDelete: false,
+            cancellationToken: cancellationToken);
+    }
+
+    private static async Task ExchangeDeclareForTopic<T>(string exchangeName, IChannel channel,
+        CancellationToken cancellationToken)
+    {
+        // Declare a durable exchange for topic
+        await channel.ExchangeDeclareAsync(
+            exchange: exchangeName,
+            type: ExchangeType.Topic,
             durable: true,
             autoDelete: false,
             cancellationToken: cancellationToken);
