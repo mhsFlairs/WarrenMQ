@@ -109,7 +109,7 @@ async Task PublishTopicMessageAsync()
 
     Console.WriteLine("Topic Publisher Started!");
     Console.WriteLine($"Exchange: {exchangeName}");
-    Console.WriteLine("Routing Key: pode2");
+    Console.WriteLine("Routing Key: admin");
 
     while (true)
     {
@@ -121,7 +121,7 @@ async Task PublishTopicMessageAsync()
             break;
         }
 
-        await rabbitMQService.PublishTopicMessageAsync(message, exchangeName, "pode2", CancellationToken.None);
+        await rabbitMQService.PublishTopicMessageAsync(message, exchangeName, "aimy.disconnect", CancellationToken.None);
 
         Console.WriteLine("✅ Topic message published successfully!");
     }
@@ -140,10 +140,10 @@ async Task ConsumeTopicMessageAsync(string _queueName)
     Console.WriteLine("Topic Consumer Started!");
     Console.WriteLine($"Queue name: {_queueName}");
     Console.WriteLine($"Exchange: {exchangeName}");
-    Console.WriteLine("Routing Key Pattern: pode2");
+    Console.WriteLine("Routing Key Pattern: admin");
     Console.WriteLine("\nWaiting for messages...\n");
 
-    await rabbitMQService.ConsumeTopicMessagesAsync<object>(_queueName, exchangeName, "pode2", message =>
+    await rabbitMQService.ConsumeTopicMessagesAsync<object>(_queueName, exchangeName, "aimy.disconnect", message =>
     {
         Console.WriteLine($"📨 Received message: {message}");
         return Task.CompletedTask;
